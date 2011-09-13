@@ -1,5 +1,5 @@
 # This set of classes provides a Ruby interface to Hudson's web xml API
-# 
+#
 # Author:: Dru Ibarra
 
 require 'net/http'
@@ -14,16 +14,16 @@ require File.dirname(__FILE__) + '/hudson-remote-api/config.rb'
 module Hudson
   # Base class for all Hudson objects
   class HudsonObject
-    
-    
+
+
     def self.load_json_api
       @@hudson_json_api_path = File.join(Hudson[:url], "api/json")
       @@xml_api_create_item_path = File.join(Hudson[:url], "createItem")
     end
-    
+
     load_json_api
-    
-    def self.get(url)
+
+    def self.fetch(url)
       uri = URI.parse(url)
       host = uri.host
       port = uri.port
@@ -45,8 +45,8 @@ module Hudson
       end
     end
 
-    def get(path)
-      self.class.get(path)
+    def fetch(path)
+      self.class.fetch(path)
     end
 
     def self.send_post_request(url, data={})
@@ -59,7 +59,7 @@ module Hudson
       request.set_form_data(data)
       Net::HTTP.new(host, port).start{|http| http.request(request)}
     end
-    
+
     def send_post_request(url, data={})
       self.class.send_post_request(url, data)
     end
@@ -76,7 +76,7 @@ module Hudson
       request.body = xml
       Net::HTTP.new(host, port).start{|http| http.request(request)}
     end
-    
+
     def send_xml_post_request(url, xml, data=nil)
       self.class.send_xml_post_request(url, xml, data)
     end

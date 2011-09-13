@@ -17,6 +17,6 @@ module Hudson
     puts e
     nil
   ensure
-    socket.close 
+    socket.close
   end
 end

@@ -1,3 +1,3 @@
 module Hudson
-    class APIError < StandardError; end
+  class APIError < StandardError; end
 end

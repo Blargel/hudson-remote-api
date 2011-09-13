@@ -1,13 +1,9 @@
-require 'test/unit'
-$LOAD_PATH << File.dirname(__FILE__) + "/../lib"
-require 'hudson-remote-api.rb'
+require 'helper'
 
 class TestHudsonBuildQueue < Test::Unit::TestCase
-  
   def test_list
     assert Hudson::BuildQueue.list
   end
-  
   def test_load_json_api
     Hudson[:url] = "test.host.com"
     assert_equal("http://test.host.com/queue/api/json",
