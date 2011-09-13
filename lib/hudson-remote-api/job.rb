@@ -7,25 +7,25 @@ module Hudson
         
         # List all Hudson jobs
         def self.list()
-            xml = get_xml(@@hudson_xml_api_path)
+            json = get(@@hudson_json_api_path)
             
             jobs = []
-            jobs_doc = REXML::Document.new(xml)
-            jobs_doc.each_element("hudson/job") do |job|
-                jobs << job.elements["name"].text
+            jobs_doc = JSON.parse(json)
+            jobs_doc["jobs"].each do |job|
+                jobs << job["name"]
             end
             jobs
         end
         
         # List all jobs in active execution
         def self.list_active
-            xml = get_xml(@@hudson_xml_api_path)
+            json = get(@@hudson_json_api_path)
             
             active_jobs = []
-            jobs_doc = REXML::Document.new(xml)
-            jobs_doc.each_element("hudson/job") do |job|
-                if job.elements["color"].text.include?("anime")
-                    active_jobs << job.elements["name"].text
+            jobs_doc = JSON.parse(json)
+            jobs_doc["job"].each do |job|
+                if job["color"].include?("anime")
+                    active_jobs << job["name"]
                 end
             end
             active_jobs
@@ -44,36 +44,35 @@ module Hudson
             name.strip!
             if Job.list.include?(name)
               @name = name
-              load_xml_api
+              load_json_api
               load_config
               load_info
               self
             else
               j = Job.create(name, config)
               @name = j.name
-              load_xml_api
+              load_json_api
               load_config
               load_info
               self
             end
         end
         
-        def load_xml_api
-          @xml_api_path = File.join(Hudson[:url], "job/#{@name}/api/xml")
+        def load_json_api
+          @json_api_path = File.join(Hudson[:url], "job/#{@name}/api/json")
           @xml_api_config_path = File.join(Hudson[:url], "job/#{@name}/config.xml")
-          @xml_api_build_path = File.join(Hudson[:url], "job/#{@name}/build")
-          @xml_api_disable_path = File.join(Hudson[:url], "job/#{@name}/disable")
-          @xml_api_enable_path = File.join(Hudson[:url], "job/#{@name}/enable")
-          @xml_api_delete_path  = File.join(Hudson[:url], "job/#{@name}/doDelete")
-          @xml_api_wipe_out_workspace_path = File.join(Hudson[:url], "job/#{@name}/doWipeOutWorkspace")
+          @api_build_path = File.join(Hudson[:url], "job/#{@name}/build")
+          @api_disable_path = File.join(Hudson[:url], "job/#{@name}/disable")
+          @api_enable_path = File.join(Hudson[:url], "job/#{@name}/enable")
+          @api_delete_path  = File.join(Hudson[:url], "job/#{@name}/doDelete")
+          @api_wipe_out_workspace_path = File.join(Hudson[:url], "job/#{@name}/doWipeOutWorkspace")
         end
         
         # Load data from Hudson's Job configuration settings into class variables
         def load_config()
-            @config = get_xml(@xml_api_config_path)
+            @config = get(@xml_api_config_path)
             @config_doc = REXML::Document.new(@config)
-            
-            @config_doc = REXML::Document.new(@config)
+
             if !@config_doc.elements["/project/scm/locations/hudson.scm.SubversionSCM_-ModuleLocation/remote"].nil?
                 @repository_url = @config_doc.elements["/project/scm/locations/hudson.scm.SubversionSCM_-ModuleLocation/remote"].text || ""
             end
@@ -90,18 +89,18 @@ module Hudson
         end
         
         def load_info()
-            @info = get_xml(@xml_api_path)
-            @info_doc = REXML::Document.new(@info)
+            @info = get(@json_api_path)
+            @info_doc = JSON.parse(@info)
             
-            if @info_doc.elements["/freeStyleProject"]
-              @color = @info_doc.elements["/freeStyleProject/color"].text if @info_doc.elements["/freeStyleProject/color"]
-              @last_build = @info_doc.elements["/freeStyleProject/lastBuild/number"].text if @info_doc.elements["/freeStyleProject/lastBuild/number"]
-              @last_completed_build = @info_doc.elements["/freeStyleProject/lastCompletedBuild/number"].text if @info_doc.elements["/freeStyleProject/lastCompletedBuild/number"]
-              @last_failed_build = @info_doc.elements["/freeStyleProject/lastFailedBuild/number"].text if @info_doc.elements["/freeStyleProject/lastFailedBuild/number"]
-              @last_stable_build = @info_doc.elements["/freeStyleProject/lastStableBuild/number"].text if @info_doc.elements["/freeStyleProject/lastStableBuild/number"]
-              @last_successful_build = @info_doc.elements["/freeStyleProject/lastSuccessfulBuild/number"].text if @info_doc.elements["/freeStyleProject/lastSuccessfulBuild/number"]
-              @last_unsuccessful_build = @info_doc.elements["/freeStyleProject/lastUnsuccessfulBuild/number"].text if @info_doc.elements["/freeStyleProject/lastUnsuccessfulBuild/number"]
-              @next_build_number = @info_doc.elements["/freeStyleProject/nextBuildNumber"].text if @info_doc.elements["/freeStyleProject/nextBuildNumber"]
+            if @info_doc
+              @color = @info_doc["color"] if @info_doc["color"]
+              @last_build = @info_doc["lastBuild"]["number"] if @info_doc.elements["lastBuild"]
+              @last_completed_build = @info_doc["lastCompletedBuild"]["number"] if @info_doc["lastCompletedBuild"]
+              @last_failed_build = @info_doc["lastFailedBuild"]["number"] if @info_doc["lastFailedBuild"]
+              @last_stable_build = @info_doc["lastStableBuild"]["number"] if @info_doc["lastStableBuild"]
+              @last_successful_build = @info_doc["lastSuccessfulBuild"]["number"] if @info_doc["lastSuccessfulBuild"]
+              @last_unsuccessful_build = @info_doc["lastUnsuccessfulBuild"]["number"] if @info_doc["lastUnsuccessfulBuild"]
+              @next_build_number = @info_doc["nextBuildNumber"] if @info_doc["nextBuildNumber"]
             end
         end
         
@@ -118,7 +117,7 @@ module Hudson
         end
         
         def self.create(name, config=nil)
-          config = File.open(File.dirname(__FILE__) + '/new_job_config.xml').read if config.nil?
+          config = File.open(File.dirname(__FILE__) + '/new_job_config.json').read if config.nil?
           
           response = send_post_request(@@xml_api_create_item_path, {:name=>name, :mode=>"hudson.model.FreeStyleProject", :config=>config})
           raise(APIError, "Error creating job #{name}: #{response.body}") if response.class != Net::HTTPFound
@@ -182,23 +181,23 @@ module Hudson
         
         # Start building this job on Hudson server (can't build parameterized jobs)
         def build()
-            response = send_post_request(@xml_api_build_path, {:delay => '0sec'})
+            response = send_post_request(@api_build_path, {:delay => '0sec'})
             response.is_a?(Net::HTTPSuccess) or response.is_a?(Net::HTTPRedirection)
         end
 
         def disable()            
-            response = send_post_request(@xml_api_disable_path)
+            response = send_post_request(@api_disable_path)
             response.is_a?(Net::HTTPSuccess) or response.is_a?(Net::HTTPRedirection)
         end
         
         def enable()            
-            response = send_post_request(@xml_api_enable_path)
+            response = send_post_request(@api_enable_path)
             response.is_a?(Net::HTTPSuccess) or response.is_a?(Net::HTTPRedirection)
         end
         
         # Delete this job from Hudson server
         def delete()
-            response = send_post_request(@xml_api_delete_path)
+            response = send_post_request(@api_delete_path)
             response.is_a?(Net::HTTPSuccess) or response.is_a?(Net::HTTPRedirection)
         end
         
@@ -206,7 +205,7 @@ module Hudson
             wait_for_build_to_finish
             
             if !active?
-                response = send_post_request(@xml_api_wipe_out_workspace_path)
+                response = send_post_request(@api_wipe_out_workspace_path)
             else
                 response = false
             end

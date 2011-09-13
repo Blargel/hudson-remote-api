@@ -8,9 +8,9 @@ class TestHudsonBuildQueue < Test::Unit::TestCase
     assert Hudson::BuildQueue.list
   end
   
-  def test_load_xml_api
+  def test_load_json_api
     Hudson[:url] = "test.host.com"
-    assert_equal("http://test.host.com/queue/api/xml",
-                 Hudson::BuildQueue.__send__("class_variable_get", "@@xml_api_build_queue_info_path"))
+    assert_equal("http://test.host.com/queue/api/json",
+                 Hudson::BuildQueue.__send__("class_variable_get", "@@json_api_build_queue_info_path"))
   end
 end

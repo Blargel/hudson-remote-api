@@ -8,6 +8,7 @@ require 'rexml/document'
 require 'cgi'
 require 'yaml'
 require 'zlib'
+require 'json'
 require File.dirname(__FILE__) + '/hudson-remote-api/config.rb'
 
 module Hudson
@@ -15,21 +16,20 @@ module Hudson
   class HudsonObject
     
     
-    def self.load_xml_api
-      @@hudson_xml_api_path = File.join(Hudson[:url], "api/xml")
+    def self.load_json_api
+      @@hudson_json_api_path = File.join(Hudson[:url], "api/json")
       @@xml_api_create_item_path = File.join(Hudson[:url], "createItem")
     end
     
-    load_xml_api
+    load_json_api
     
-    def self.get_xml(url)
+    def self.get(url)
       uri = URI.parse(url)
       host = uri.host
       port = uri.port
       path = uri.path
       request = Net::HTTP::Get.new(path)
       request.basic_auth(Hudson[:user], Hudson[:password]) if Hudson[:user] and Hudson[:password]
-      request['Content-Type'] = "text/xml"
       response = Net::HTTP.start(host, port){|http| http.request(request)}
 
       if response.is_a?(Net::HTTPSuccess) or response.is_a?(Net::HTTPRedirection)
@@ -45,8 +45,8 @@ module Hudson
       end
     end
 
-    def get_xml(path)
-      self.class.get_xml(path)
+    def get(path)
+      self.class.get(path)
     end
 
     def self.send_post_request(url, data={})

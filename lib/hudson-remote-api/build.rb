@@ -11,19 +11,19 @@ module Hudson
 				@number = @job.last_build
 			end
 			@revisions = {}
-			@xml_api_build_info_path = File.join(Hudson[:url], "job/#{@job.name}/#{@number}/api/xml")
+			@json_api_build_info_path = File.join(Hudson[:url], "job/#{@job.name}/#{@number}/api/json")
 			load_build_info
 		end
 		
 		private
 		def load_build_info
 			
-			build_info_xml = get_xml(@xml_api_build_info_path)
-      build_info_doc = REXML::Document.new(build_info_xml)
+			build_info_json = get(@json_api_build_info_path)
+      build_info_doc = JSON.parse(build_info_json)
 
-      @result = build_info_doc.elements["/freeStyleBuild/result"].text
-      if !build_info_doc.elements["/freeStyleBuild/changeSet"].nil?
-          build_info_doc.elements.each("/freeStyleBuild/changeSet/revision"){|e| @revisions[e.elements["module"].text] = e.elements["revision"].text }
+      @result = build_info_doc["result"]
+      if !build_info_doc["changeSet"].nil?
+          build_info_doc["changeSet"]["items"].each {|item| @revisions[item["module"]] = e["revision"] }
       end
 		end
 	end
